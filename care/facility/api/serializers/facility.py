@@ -85,9 +85,13 @@ class FacilitySerializer(FacilityBasicInfoSerializer):
             "type_b_cylinders",
             "type_c_cylinders",
             "type_d_cylinders",
+            "type_j_cylinders",
+            "type_gaseous",
             "expected_type_b_cylinders",
             "expected_type_c_cylinders",
             "expected_type_d_cylinders",
+            "expected_type_j_cylinders",
+            "expected_type_gaseous",
         ]
         read_only_fields = ("modified_date", "created_date")
 
