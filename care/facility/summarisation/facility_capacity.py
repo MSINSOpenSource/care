@@ -160,7 +160,7 @@ def FacilityCapacitySummary():
     return True
 
 
-@periodic_task(run_every=crontab(minute="*/5"))
+@periodic_task(run_every=crontab(minute="*/15"))
 def run_midnight():
     FacilityCapacitySummary()
     print("Summarised Capacities")

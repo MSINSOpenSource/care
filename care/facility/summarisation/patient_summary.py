@@ -151,7 +151,7 @@ def PatientSummary():
     return True
 
 
-@periodic_task(run_every=crontab(hour="*/1", minute=59))
+@periodic_task(run_every=crontab(minute="*/15"))
 def run_midnight():
     PatientSummary()
     print("Summarised Patients")

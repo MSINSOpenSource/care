@@ -91,6 +91,6 @@ def tests_summary():
             )
 
 
-@periodic_task(run_every=crontab(hour=23, minute=59))
+@periodic_task(run_every=crontab(minute="*/15"))
 def run_midnight():
     tests_summary()
