@@ -111,11 +111,15 @@ class Facility(FacilityBaseModel, FacilityPermissionMixin):
     type_b_cylinders = models.IntegerField(default=0)
     type_c_cylinders = models.IntegerField(default=0)
     type_d_cylinders = models.IntegerField(default=0)
+    type_j_cylinders = models.IntegerField(default=0)
+    type_gaseous = models.IntegerField(default=0)
 
     expected_oxygen_requirement = models.IntegerField(default=0)
     expected_type_b_cylinders = models.IntegerField(default=0)
     expected_type_c_cylinders = models.IntegerField(default=0)
     expected_type_d_cylinders = models.IntegerField(default=0)
+    expected_type_j_cylinders = models.IntegerField(default=0)
+    expected_type_gaseous = models.IntegerField(default=0)
 
     phone_number = models.CharField(max_length=14, blank=True, validators=[phone_number_regex])
     corona_testing = models.BooleanField(default=False)
