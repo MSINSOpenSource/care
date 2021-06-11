@@ -169,7 +169,7 @@ def DistrictPatientSummary():
     return True
 
 
-@periodic_task(run_every=crontab(minute="*/"))
+@periodic_task(run_every=crontab(minute="*/1"))
 def run_midnight():
     DistrictPatientSummary()
     print("Summarised Patients")
