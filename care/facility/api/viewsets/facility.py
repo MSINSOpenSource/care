@@ -5,7 +5,8 @@ from django.db.models.query_utils import Q
 from django_filters import rest_framework as filters
 from djqscsv import render_to_csv_response
 from dry_rest_permissions.generics import DRYPermissionFiltersBase, DRYPermissions
-from rest_framework import status, viewsets, mixins
+from rest_framework import filters as drf_filters
+from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -20,15 +21,14 @@ from care.facility.api.serializers.patient import PatientListSerializer
 from care.facility.models import (
     Facility,
     FacilityCapacity,
-    PatientRegistration,
-    HospitalDoctors,
     FacilityPatientStatsHistory,
+    HospitalDoctors,
+    PatientRegistration,
     facility,
 )
+from care.users.api.serializers.user import UserBaseMinimumSerializer
 from care.users.models import User
 from config.utils import get_psql_search_tokens
-
-from care.users.api.serializers.user import UserBaseMinimumSerializer
 
 
 class FacilityFilter(filters.FilterSet):
@@ -38,6 +38,8 @@ class FacilityFilter(filters.FilterSet):
     district_name = filters.CharFilter(field_name="district__name", lookup_expr="icontains")
     local_body = filters.NumberFilter(field_name="local_body__id")
     local_body_name = filters.CharFilter(field_name="local_body__name", lookup_expr="icontains")
+    division = filters.NumberFilter(field_name="district__division__id")
+    division_name = filters.CharFilter(field_name="district__division__name", lookup_expr="icontains")
     state = filters.NumberFilter(field_name="state__id")
     state_name = filters.CharFilter(field_name="state__name", lookup_expr="icontains")
     kasp_empanelled = filters.BooleanFilter(field_name="kasp_empanelled")
@@ -54,15 +56,15 @@ class FacilityQSPermissions(DRYPermissionFiltersBase):
         else:
             queryset = queryset.filter(users__id__exact=request.user.id)
 
-        search_text = request.query_params.get("search_text")
-        if search_text:
-            vector = SearchVector("name", "district__name", "state__name")
-            query = SearchQuery(get_psql_search_tokens(search_text), search_type="raw")
-            queryset = (
-                queryset.annotate(search_text=vector, rank=SearchRank(vector, query))
-                .filter(search_text=query)
-                .order_by("-rank")
-            )
+        # search_text = request.query_params.get("search_text")
+        # if search_text:
+        #     vector = SearchVector("name", "district__name", "state__name")
+        #     query = SearchQuery(get_psql_search_tokens(search_text), search_type="raw")
+        #     queryset = (
+        #         queryset.annotate(search_text=vector, rank=SearchRank(vector, query))
+        #         .filter(search_text=query)
+        #         .order_by("-rank")
+        #     )
         return queryset
 
 
@@ -76,17 +78,16 @@ class FacilityViewSet(
 ):
     """Viewset for facility CRUD operations."""
 
-    queryset = Facility.objects.filter(is_active=True).select_related("ward", "local_body", "district", "state")
+    queryset = Facility.objects.all().select_related("ward", "local_body", "district", "district__division", "state")
     permission_classes = (
         IsAuthenticated,
         DRYPermissions,
     )
-    filter_backends = (
-        FacilityQSPermissions,
-        filters.DjangoFilterBackend,
-    )
+    filter_backends = (FacilityQSPermissions, filters.DjangoFilterBackend, drf_filters.SearchFilter)
     filterset_class = FacilityFilter
     lookup_field = "external_id"
+
+    search_fields = ["name", "district__name", "district__division__name", "state__name"]
 
     FACILITY_CAPACITY_CSV_KEY = "capacity"
     FACILITY_DOCTORS_CSV_KEY = "doctors"
@@ -282,7 +283,7 @@ class FacilityViewSet(
 class AllFacilityViewSet(
     mixins.RetrieveModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet,
 ):
-    queryset = Facility.objects.filter(is_active=True).select_related("local_body", "district", "state")
+    queryset = Facility.objects.all().select_related("local_body", "district", "district__division", "state")
     serializer_class = FacilityBasicInfoSerializer
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = FacilityFilter

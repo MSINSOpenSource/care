@@ -47,8 +47,17 @@ class State(models.Model):
         return f"{self.name}"
 
 
+class Division(models.Model):
+    name = models.CharField(max_length=255)
+    state = models.ForeignKey(State, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return f"{self.name}"
+
+
 class District(models.Model):
     state = models.ForeignKey(State, on_delete=models.PROTECT)
+    division = models.ForeignKey(Division, related_name="districts", on_delete=models.PROTECT, null=True)
     name = models.CharField(max_length=255)
 
     def __str__(self):
@@ -88,6 +97,7 @@ class LocalBody(models.Model):
     localbody_code = models.CharField(max_length=20, blank=True, null=True)
 
     class Meta:
+        verbose_name_plural = "local bodies"
         unique_together = (
             "district",
             "body_type",
@@ -120,9 +130,12 @@ class CustomUserManager(UserManager):
         return qs.filter(deleted=False).select_related("local_body", "district", "state")
 
     def create_superuser(self, username, email, password, **extra_fields):
-        district_id = extra_fields["district"]
-        district = District.objects.get(id=district_id)
+        district = District.objects.all()[0]
         extra_fields["district"] = district
+        extra_fields["age"] = 20
+        extra_fields["phone_number"] = "+919696969696"
+        extra_fields["gender"] = 3
+        extra_fields["user_type"] = 40
         return super().create_superuser(username, email, password, **extra_fields)
 
 
@@ -135,7 +148,7 @@ class Skill(models.Model):
 
 
 class UsernameValidator(UnicodeUsernameValidator):
-    regex = r"^[\w.@+-]+[^.@+-_]$"
+    regex = r"^[\w.@+-]+[^.@+_-]$"
     message = _("Please enter letters, digits and @ . + - _ only and username should not end with @ . + - or _")
 
 
@@ -163,6 +176,9 @@ class User(AbstractUser):
         "DistrictLabAdmin": 25,
         "DistrictReadOnlyAdmin": 29,
         "DistrictAdmin": 30,
+        "DivisionLabAdmin": 31,
+        "DivisionReadOnlyAdmin":32,
+        "DivisionAdmin":33,
         "StateLabAdmin": 35,
         "StateReadOnlyAdmin": 39,
         "StateAdmin": 40,
@@ -177,9 +193,14 @@ class User(AbstractUser):
     ward = models.ForeignKey(Ward, on_delete=models.PROTECT, null=True, blank=True)
     local_body = models.ForeignKey(LocalBody, on_delete=models.PROTECT, null=True, blank=True)
     district = models.ForeignKey(District, on_delete=models.PROTECT, null=True, blank=True)
+    division = models.ForeignKey(Division, on_delete=models.PROTECT, null=True, blank=True)
     state = models.ForeignKey(State, on_delete=models.PROTECT, null=True, blank=True)
 
     phone_number = models.CharField(max_length=14, validators=[phone_number_regex])
+    alt_phone_number = models.CharField(
+        max_length=14, validators=[phone_number_regex], default=None, blank=True, null=True
+    )
+
     gender = models.IntegerField(choices=GENDER_CHOICES, blank=False)
     age = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(100)])
     skill = models.ForeignKey("Skill", on_delete=models.SET_NULL, null=True, blank=True)
@@ -194,12 +215,7 @@ class User(AbstractUser):
     objects = CustomUserManager()
 
     REQUIRED_FIELDS = [
-        "user_type",
         "email",
-        "phone_number",
-        "age",
-        "gender",
-        "district",
     ]
 
     CSV_MAPPING = {

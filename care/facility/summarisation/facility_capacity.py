@@ -4,6 +4,7 @@ from django.db.models import Sum
 from django.utils.decorators import method_decorator
 from django.utils.timezone import localtime, now
 from django.views.decorators.cache import cache_page
+from django.conf import settings
 from django_filters import rest_framework as filters
 from rest_framework import serializers
 from rest_framework.mixins import ListModelMixin
@@ -34,6 +35,7 @@ class FacilitySummaryFilter(filters.FilterSet):
     end_date = filters.DateFilter(field_name="created_date", lookup_expr="lte")
     facility = filters.UUIDFilter(field_name="facility__external_id")
     district = filters.NumberFilter(field_name="facility__district__id")
+    division = filters.NumberFilter(field_name="facility__district__division__id")
     local_body = filters.NumberFilter(field_name="facility__local_body__id")
     state = filters.NumberFilter(field_name="facility__state__id")
 
@@ -45,7 +47,7 @@ class FacilityCapacitySummaryViewSet(
     queryset = (
         FacilityRelatedSummary.objects.filter(s_type="FacilityCapacity")
         .order_by("-created_date")
-        .select_related("facility", "facility__state", "facility__district", "facility__local_body")
+        .select_related("facility", "facility__state", "facility__district", "facility__district__division", "facility__local_body")
     )
     permission_classes = (IsAuthenticatedOrReadOnly,)
     serializer_class = FacilitySummarySerializer
@@ -53,7 +55,9 @@ class FacilityCapacitySummaryViewSet(
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = FacilitySummaryFilter
 
-    @method_decorator(cache_page(60 * 10))
+    cache_limit = settings.API_CACHE_DURATION_IN_SECONDS
+
+    @method_decorator(cache_page(cache_limit))
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
@@ -94,7 +98,10 @@ def FacilityCapacitySummary():
                 facility_id=facility_obj.id, item_id=summary_obj.item.id
             ).first()
             log_query = FacilityInventoryLog.objects.filter(
-                facility_id=facility_obj.id, item_id=summary_obj.item.id, created_date__gte=current_date
+                facility_id=facility_obj.id,
+                item_id=summary_obj.item.id,
+                created_date__gte=current_date,
+                probable_accident=False,
             )
             start_log = log_query.order_by("created_date").first()
             end_log = log_query.order_by("-created_date").first()

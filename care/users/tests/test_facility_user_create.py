@@ -21,6 +21,7 @@ class TestFacilityUserApi(TestBase):
             "password": mock_equal,
             "username": obj.username,
             "first_name": obj.first_name,
+            'alt_phone_number': obj.alt_phone_number,
             "last_name": obj.last_name,
             "email": obj.email,
             "phone_number": obj.phone_number,
@@ -28,7 +29,12 @@ class TestFacilityUserApi(TestBase):
             "local_body": getattr(obj.local_body, "id", None),
             "district": getattr(obj.district, "id", None),
             "state": getattr(obj.state, "id", None),
+            "division": getattr(obj.division, "id", None),
             "skill": obj.skill,
+            "ward": obj.ward,
+            "pf_auth": obj.pf_auth,
+            "pf_endpoint": obj.pf_endpoint,
+            "pf_p256dh": obj.pf_p256dh
         }
 
     def get_new_user_data(self):
@@ -38,6 +44,7 @@ class TestFacilityUserApi(TestBase):
             "phone_number": "+917795937091",
             "gender": "Male",
             "age": 28,
+            "password": "asdfqwer",
             "first_name": "Roopak",
             "last_name": "A N",
             "email": "anroopak@gmail.com",
@@ -58,10 +65,9 @@ class TestFacilityUserApi(TestBase):
         self.assertDictEqual(response.json(), self.get_detail_representation(user))
 
         # Test for login
-        password = response.json()["password"]
-        self.client.login(username=data["username"], password=password)
+        self.client.login(username=data["username"], password=data["password"])
         response = self.client.post(
-            f"/api/v1/auth/login/", data={"username": data["username"], "password": password}, format="json"
+            f"/api/v1/auth/login/", data={"username": data["username"], "password": data["password"]}, format="json"
         )
         self.assertEquals(response.status_code, status.HTTP_200_OK)
 
@@ -76,7 +82,7 @@ class TestFacilityUserApi(TestBase):
 
     def test_create_facility_user__should_succeed__when_lower_level(self):
         data = self.get_new_user_data().copy()
-        data.update({"user_type": "Doctor"})
+        data.update({"user_type": "Volunteer"})
 
         response = self.client.post(self.get_url(), data=data, format="json")
         # Test Creation
@@ -87,10 +93,9 @@ class TestFacilityUserApi(TestBase):
         self.assertDictEqual(response.json(), self.get_detail_representation(user))
 
         # Test for login
-        password = response.json()["password"]
-        self.client.login(username=data["username"], password=password)
+        self.client.login(username=data["username"], password=data["password"])
         response = self.client.post(
-            f"/api/v1/auth/login/", data={"username": data["username"], "password": password}, format="json"
+            f"/api/v1/auth/login/", data={"username": data["username"], "password": data["password"]}, format="json"
         )
         self.assertEquals(response.status_code, status.HTTP_200_OK)
 

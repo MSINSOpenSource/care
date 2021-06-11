@@ -59,6 +59,7 @@ workflows:
       - aws-eks/update-container-image:
           name: deploy-to-staging
           cluster-name: "${EKS_CLUSTER_NAME}"
+          namespace: "staging"
           aws-region: "${AWS_DEFAULT_REGION}"
           container-image-updates: "${EKS_CONTAINER_NAME}=${AWS_ECR_ACCOUNT_URL}/${AWS_RESOURCE_NAME_PREFIX}:${CIRCLE_SHA1}"
           resource-name: "${EKS_STAGING_DEPLOYMENT_NAME}"
@@ -66,6 +67,7 @@ workflows:
             - aws-ecr/build-and-push-image
       - aws-eks/update-container-image:
           name: update-scheduler-staging
+          namespace: "staging"
           cluster-name: "${EKS_CLUSTER_NAME}"
           aws-region: "${AWS_DEFAULT_REGION}"
           container-image-updates: "${EKS_CONTAINER_NAME}=${AWS_ECR_ACCOUNT_URL}/${AWS_RESOURCE_NAME_PREFIX}:${CIRCLE_SHA1}"
@@ -74,6 +76,7 @@ workflows:
             - aws-ecr/build-and-push-image
       - aws-eks/update-container-image:
           name: update-worker-staging
+          namespace: "staging"
           cluster-name: "${EKS_CLUSTER_NAME}"
           aws-region: "${AWS_DEFAULT_REGION}"
           container-image-updates: "${EKS_CONTAINER_NAME}=${AWS_ECR_ACCOUNT_URL}/${AWS_RESOURCE_NAME_PREFIX}:${CIRCLE_SHA1}"

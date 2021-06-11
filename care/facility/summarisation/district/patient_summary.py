@@ -1,5 +1,6 @@
 from celery.decorators import periodic_task
 from celery.schedules import crontab
+from django.conf import settings
 from django.db.models import Q, Subquery
 from django.utils.decorators import method_decorator
 from django.utils.timezone import now
@@ -36,6 +37,7 @@ class DistrictSummaryFilter(filters.FilterSet):
     start_date = filters.DateFilter(field_name="created_date", lookup_expr="gte")
     end_date = filters.DateFilter(field_name="created_date", lookup_expr="lte")
     district = filters.NumberFilter(field_name="district__id")
+    division = filters.NumberFilter(field_name="district__division__id")
     state = filters.NumberFilter(field_name="district__state__id")
 
 
@@ -44,7 +46,7 @@ class DistrictPatientSummaryViewSet(ListModelMixin, GenericViewSet):
     queryset = (
         DistrictScopedSummary.objects.filter(s_type="PatientSummary")
         .order_by("-created_date")
-        .select_related("district", "district__state")
+        .select_related("district", "district__state", "district__division")
     )
     permission_classes = (IsAuthenticatedOrReadOnly,)
     serializer_class = DistrictSummarySerializer
@@ -52,7 +54,9 @@ class DistrictPatientSummaryViewSet(ListModelMixin, GenericViewSet):
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = DistrictSummaryFilter
 
-    @method_decorator(cache_page(60 * 10))
+    cache_limit = settings.API_CACHE_DURATION_IN_SECONDS
+
+    @method_decorator(cache_page(cache_limit))
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
