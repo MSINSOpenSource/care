@@ -59,6 +59,7 @@ class District(models.Model):
     state = models.ForeignKey(State, on_delete=models.PROTECT)
     division = models.ForeignKey(Division, related_name="districts", on_delete=models.PROTECT, null=True)
     name = models.CharField(max_length=255)
+    is_dashboard_activated = models.BooleanField(default=False, null=True)
 
     def __str__(self):
         return f"{self.name}"
@@ -177,8 +178,8 @@ class User(AbstractUser):
         "DistrictReadOnlyAdmin": 29,
         "DistrictAdmin": 30,
         "DivisionLabAdmin": 31,
-        "DivisionReadOnlyAdmin":32,
-        "DivisionAdmin":33,
+        "DivisionReadOnlyAdmin": 32,
+        "DivisionAdmin": 33,
         "StateLabAdmin": 35,
         "StateReadOnlyAdmin": 39,
         "StateAdmin": 40,

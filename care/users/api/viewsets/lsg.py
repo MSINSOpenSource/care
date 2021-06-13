@@ -44,6 +44,7 @@ class DivisionFilterSet(filters.FilterSet):
     state = filters.NumberFilter(field_name="state_id")
     state_name = filters.CharFilter(field_name="state__name", lookup_expr="icontains")
 
+
 class DivisionViewSet(ListCacheResponseMixin, mixins.ListModelMixin, GenericViewSet):
     serializer_class = DivisionSerializer
     queryset = Division.objects.all().order_by("name")
@@ -65,6 +66,7 @@ class DistrictFilterSet(filters.FilterSet):
     division = filters.NumberFilter(field_name="division_id")
     division_name = filters.CharFilter(field_name="division__name", lookup_expr="icontains")
     district_name = filters.CharFilter(field_name="name", lookup_expr="icontains")
+    is_dashboard_activated = filters.BooleanFilter()
 
 
 class DistrictViewSet(ListCacheResponseMixin, mixins.ListModelMixin, GenericViewSet):
