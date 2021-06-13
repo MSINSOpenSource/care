@@ -298,7 +298,7 @@ class TestBase(APITestCase):
             return {"district": None, "district_object": None}
         return {
             "district": district.id,
-            "district_object": {"id": district.id, "name": district.name, "state": district.state.id,},
+            "district_object": {"id": district.id, "name": district.name, 'is_dashboard_activated': False, "division": district.division, "state": district.state.id,},
         }
 
     def get_state_representation(self, state: State):

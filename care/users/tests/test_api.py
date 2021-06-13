@@ -23,6 +23,7 @@ class TestSuperUser(TestBase):
             "phone_number": obj.phone_number,
             "first_name": obj.first_name,
             "last_name": obj.last_name,
+            "alt_phone_number": obj.alt_phone_number,
             "age": obj.age,
             **self.get_local_body_district_state_representation(obj),
         }
@@ -92,15 +93,14 @@ class TestSuperUser(TestBase):
         # test value at the backend
         self.assertEqual(User.objects.get(username=username).age, 31)
 
-    def test_superuser_cannot_delete(self):
-        """Test superuser cannot delete other users"""
-        """Delete method is disabled on UserViewset"""
+    def test_superuser_can_delete(self):
+        """Test superuser can delete other users"""
+        """Delete refers to soft-delete, users will be deactivated"""
         response = self.client.delete(f"/api/v1/users/{self.user.username}/")
         # test response code
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         # test backend response
-        # with self.assertRaises(expected_exception=User.DoesNotExist):
-        #     User.objects.get(username=self.user_data["username"])
+        self.assertFalse(User.objects.get(username=self.user.username).is_active)
 
 
 class TestUser(TestBase):
@@ -187,7 +187,7 @@ class TestUser(TestBase):
         field = "username"
         response = self.client.delete(f"/api/v1/users/{self.data_2[field]}/")
         # test response code
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         # test backend response(user_2 still exists)
         self.assertEqual(
             self.data_2[field], User.objects.get(username=self.data_2[field]).username,
