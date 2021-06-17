@@ -12,14 +12,15 @@ def add_divisions(apps, schema_editor):
 
     maharashtra_state = State.objects.filter(name="Maharashtra").first()
 
-    with open('data/india/maharashtra/divisions.json') as json_file:
-        data = json.load(json_file)
-        for row in data:
-            division = Division.objects.create(name=row["name"], state=maharashtra_state)
-            District.objects.filter(name__in=row["districts"]).update(division=division)
+    if maharashtra_state:
+        with open('data/india/maharashtra/divisions.json') as json_file:
+            data = json.load(json_file)
+            for row in data:
+                division = Division.objects.create(name=row["name"], state=maharashtra_state)
+                District.objects.filter(name__in=row["districts"]).update(division=division)
+
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ('users', '0038_user_alt_phone_number'),
     ]
