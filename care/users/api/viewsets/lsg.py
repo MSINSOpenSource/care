@@ -11,7 +11,7 @@ from rest_framework.viewsets import GenericViewSet
 from care.users.api.serializers.lsg import DistrictSerializer, DivisionSerializer, LocalBodySerializer, StateSerializer, WardSerializer
 from care.users.models import District, Division, LocalBody, State, Ward
 
-from care.utils.cache.mixin import ListCacheResponseMixin
+from care.utils.cache.mixin import ListCacheResponseMixin, RetrieveCacheResponseMixin
 
 cache_limit = settings.API_CACHE_DURATION_IN_SECONDS
 
@@ -20,7 +20,13 @@ class PaginationOverrideClass(PageNumberPagination):
     page_size = 500
 
 
-class StateViewSet(ListCacheResponseMixin, mixins.ListModelMixin, GenericViewSet):
+class StateViewSet(
+    ListCacheResponseMixin,
+    RetrieveCacheResponseMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    GenericViewSet,
+):
     serializer_class = StateSerializer
     queryset = State.objects.all().order_by("id")
     pagination_class = PaginationOverrideClass
@@ -67,7 +73,13 @@ class DistrictFilterSet(filters.FilterSet):
     district_name = filters.CharFilter(field_name="name", lookup_expr="icontains")
 
 
-class DistrictViewSet(ListCacheResponseMixin, mixins.ListModelMixin, GenericViewSet):
+class DistrictViewSet(
+    ListCacheResponseMixin,
+    RetrieveCacheResponseMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    GenericViewSet,
+):
     serializer_class = DistrictSerializer
     queryset = District.objects.all().order_by("name")
     filter_backends = (filters.DjangoFilterBackend,)
@@ -101,7 +113,13 @@ class LocalBodyFilterSet(filters.FilterSet):
     local_body_name = filters.CharFilter(field_name="name", lookup_expr="icontains")
 
 
-class LocalBodyViewSet(ListCacheResponseMixin, mixins.ListModelMixin, GenericViewSet):
+class LocalBodyViewSet(
+    ListCacheResponseMixin,
+    RetrieveCacheResponseMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    GenericViewSet,
+):
     serializer_class = LocalBodySerializer
     queryset = LocalBody.objects.all().order_by("name")
     filter_backends = (filters.DjangoFilterBackend,)
@@ -119,7 +137,13 @@ class WardFilterSet(filters.FilterSet):
     ward_name = filters.CharFilter(field_name="name", lookup_expr="icontains")
 
 
-class WardViewSet(ListCacheResponseMixin, mixins.ListModelMixin, GenericViewSet):
+class WardViewSet(
+    ListCacheResponseMixin,
+    RetrieveCacheResponseMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    GenericViewSet,
+):
     serializer_class = WardSerializer
     queryset = Ward.objects.all().order_by("name")
     filter_backends = (filters.DjangoFilterBackend,)
