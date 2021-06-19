@@ -53,12 +53,13 @@ class UserAdmin(auth_admin.UserAdmin, ExportCsvMixin):
 
 @admin.register(State)
 class StateAdmin(admin.ModelAdmin):
-    pass
+    search_fields = ["name"]
 
 
 @admin.register(District)
 class DistrictAdmin(admin.ModelAdmin):
-    pass
+    search_fields = ["name"]
+    autocomplete_fields = ["state"]
 
 
 @admin.register(Division)
@@ -69,10 +70,12 @@ class DivisionAdmin(admin.ModelAdmin):
 @admin.register(LocalBody)
 class LocalBodyAdmin(admin.ModelAdmin):
     search_fields = ["name"]
+    autocomplete_fields = ["district"]
 
 
 @admin.register(Ward)
 class WardAdmin(admin.ModelAdmin):
+    search_fields = ["name"]
     autocomplete_fields = ["local_body"]
 
 

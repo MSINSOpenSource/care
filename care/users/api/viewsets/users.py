@@ -36,6 +36,7 @@ INVERSE_USER_TYPE = inverse_choices(User.TYPE_CHOICES)
 
 
 class UserFilterSet(filters.FilterSet):
+    id = filters.NumberFilter(field_name="id", lookup_expr="exact")
     first_name = filters.CharFilter(field_name="first_name", lookup_expr="icontains")
     last_name = filters.CharFilter(field_name="last_name", lookup_expr="icontains")
     username = filters.CharFilter(field_name="username", lookup_expr="icontains")
@@ -118,9 +119,15 @@ class UserViewSet(
         if request.user.is_superuser:
             pass
         elif request.user.user_type >= User.TYPE_VALUE_MAP["StateLabAdmin"]:
-            queryset = queryset.filter(state=request.user.state)
+            queryset = queryset.filter(
+                state=request.user.state, user_type__lte=User.TYPE_VALUE_MAP["StateAdmin"], is_superuser=False,
+            )
         elif request.user.user_type >= User.TYPE_VALUE_MAP["DistrictLabAdmin"]:
-            queryset = queryset.filter(district=request.user.district)
+            queryset = queryset.filter(
+                district=request.user.district,
+                user_type__lte=User.TYPE_VALUE_MAP["DistrictAdmin"],
+                is_superuser=False,
+            )
         else:
             raise ValidationError({"permission": "Denied"})
         user = get_object_or_404(queryset.filter(username=username))
@@ -214,12 +221,15 @@ class UserViewSet(
         FacilityUser.objects.filter(facility=facility, user=user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=["PATCH"], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=["PATCH", "GET"], permission_classes=[IsAuthenticated])
     def pnconfig(self, request, *args, **kwargs):
         user = request.user
+        if request.method == "GET":
+            return Response({"pf_endpoint": user.pf_endpoint, "pf_p256dh": user.pf_p256dh, "pf_auth": user.pf_auth})
         acceptable_fields = ["pf_endpoint", "pf_p256dh", "pf_auth"]
         for field in acceptable_fields:
             if field in request.data:
                 setattr(user, field, request.data[field])
         user.save()
-        return Response(stauts=status.HTTP_200_OK)
+        return Response(status=status.HTTP_200_OK)
+
