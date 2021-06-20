@@ -2,6 +2,7 @@ from collections import defaultdict
 from pyexcel_xls import get_data as xls_get
 from pyexcel_xlsx import get_data as xlsx_get
 import json
+from datetime import datetime
 
 from django.conf import settings
 from django.utils.datastructures import MultiValueDictKeyError
@@ -26,7 +27,7 @@ from care.facility.api.serializers.patient_external_test import (
 )
 from care.facility.api.viewsets.mixins.access import UserAccessMixin
 from care.facility.models import PatientExternalTest
-from care.users.models import User, Ward
+from care.users.models import User, Ward, State
 
 
 def prettyerrors(errors):
@@ -162,21 +163,41 @@ class PatientExternalTestViewSet(
 
             parsed_data = []
 
+            states = State.objects.all().prefetch_related("districts")
+            states_dict = {state.name.lower(): state for state in states}
+
             try:
                 file_name = list(excel_data.keys())[0]
                 keys = []
                 for i, row in enumerate(excel_data.get(file_name)):
                     if i == 0:
                         keys = [item.strip() for item in row]
-                        print(keys)
                     else:
                         dictionary = {}
+                        district_dict = {}
                         for j, item in enumerate(row):
                             if isinstance(item, str):
                                 item = item.strip()
-                            
+
                             key = PatientExternalTest.ICMR_EXCEL_HEADER_KEY_MAPPING.get(keys[j])
-                            
+
+                            if key == "state":
+                                state = states_dict.get(item.lower())
+                                item = state.id
+                                key = "state_id"
+                                district_dict = {district.name.lower(): district for district in state.districts.all()}
+
+                            elif key == "district":
+                                district = district_dict.get(item.lower())
+                                item = district.id
+                                key = "district_id"
+
+                            elif key in ["is_hospitalized", "is_repeat"]:
+                                if item and "yes" in item:
+                                    item = True
+                                else:
+                                    item = False
+
                             if key:
                                 dictionary[key] = item
                         if dictionary:
@@ -184,10 +205,11 @@ class PatientExternalTestViewSet(
 
             except Exception as e:
                 raise e
-            
+
             serializer = PatientExternalTestICMRDataSerializer(data=parsed_data, many=True)
             serializer.is_valid(raise_exception=True)
+            external_tests = serializer.save()
 
-            return Response(data=parsed_data, status=status.HTTP_200_OK)
+            return Response(data=PatientExternalTestSerializer(external_tests, many=True).data, status=status.HTTP_200_OK)
         except MultiValueDictKeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)

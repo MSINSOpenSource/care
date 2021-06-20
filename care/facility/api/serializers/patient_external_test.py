@@ -1,6 +1,7 @@
+from datetime import datetime
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-
+from django.db import IntegrityError
 from care.facility.models import PatientExternalTest
 from care.users.models import State, District, Ward, LocalBody, REVERSE_LOCAL_BODY_CHOICES
 from care.users.api.serializers.lsg import (
@@ -89,6 +90,17 @@ class PatientExternalTestSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class ListPatientExternalTestICMRDataSerializer(serializers.ListSerializer):
+    def create(self, validated_data):
+        result = [self.child.create(attrs) for attrs in validated_data]
+
+        try:
+            PatientExternalTest.objects.bulk_create(result)
+        except IntegrityError as e:
+            raise ValidationError(e)
+        
+        return result
+
 class PatientExternalTestICMRDataSerializer(serializers.Serializer):
     # local_body_object = LocalBodySerializer(source="local_body", read_only=True)
     # district_object = DistrictSerializer(source="district", read_only=True)
@@ -97,9 +109,8 @@ class PatientExternalTestICMRDataSerializer(serializers.Serializer):
     name = serializers.CharField(write_only=True)
     age = serializers.IntegerField(write_only=True)
     age_in = serializers.CharField(write_only=True)
-    gender = serializers.CharField(write_only=True)
+    gender = serializers.CharField(write_only=True, required=False, allow_blank=True)
     mobile_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    is_repeat = serializers.BooleanField(write_only=True, required=False)
     patient_category = serializers.CharField(write_only=True, required=False, allow_blank=True)
     lab_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
     sample_type = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -114,8 +125,7 @@ class PatientExternalTestICMRDataSerializer(serializers.Serializer):
     address = serializers.CharField(write_only=True, required=False, allow_blank=True)
     village_town = serializers.CharField(write_only=True, required=False, allow_blank=True)
     underlying_medical_condition = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    is_hospitalized = serializers.BooleanField(write_only=True, required=False)
-    is_repeat = serializers.BooleanField(write_only=True, required=False)
+
     sample_id = serializers.CharField(write_only=True, required=False, allow_blank=True)
     hospital_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
     hospital_state = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -126,42 +136,46 @@ class PatientExternalTestICMRDataSerializer(serializers.Serializer):
     rdrp = serializers.CharField(write_only=True, required=False, allow_blank=True)
     orf1b = serializers.CharField(write_only=True, required=False, allow_blank=True)
     remarks = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    state = serializers.CharField(write_only=True)
-    district = serializers.CharField(write_only=True)
+    state_id = serializers.IntegerField(write_only=True)
+    district_id = serializers.IntegerField(write_only=True)
 
-    sample_collection_date = serializers.DateField(input_formats=["%Y-%m-%d"], required=False)
-    result_date = serializers.DateField(input_formats=["%Y-%m-%d %H-%M-%S"], required=False)
+    is_hospitalized = serializers.BooleanField(write_only=True)
+    is_repeat = serializers.BooleanField(write_only=True)
+
+    sample_collection_date = serializers.DateField(write_only=True, input_formats=["%Y-%m-%d %H:%M:%S"], required=False)
+    sample_received_date = serializers.DateTimeField(
+        write_only=True, required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
+    entry_date = serializers.DateTimeField(write_only=True, required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
+    hospitalization_date = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    date_of_sample_tested = serializers.DateTimeField(
+        write_only=True, required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
+    confirmation_date = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    def validate_hospitalization_date(self, date):
+        if "N/A" in date:
+            return None
+        elif date:
+            return datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+        return None
+
+    def validate_confirmation_date(self, date):
+        if "N/A" in date:
+            return None
+        elif date:
+            return datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+        return None
 
     def validate(self, data):
-        data["is_hospitalized"] = False
-        if data["is_hospitalized"] and "yes" in data["is_hospitalized"].lower():
-            data["is_hospitalized"] = True
+        if "state_id" not in data:
+            raise ValidationError({"state": ["State Does not Exist"]})
 
-        data["is_repeat"] = False
-        if data["is_repeat"] and "yes" in data["is_repeat"].lower():
-            data["is_repeat"] = True
-
-        # print(data.keys())
-        state_obj = None
-
-        if "state" in data:
-            state = data["state"]
-            state_obj = State.objects.filter(name__icontains=state).first()
-            if state_obj:
-                data["state"] = state_obj.id
-            else:
-                raise ValidationError({"state": ["State Does not Exist"]})
-        else:
-            raise ValidationError({"state": ["State Not Present in Data"]})
-
-        if "district" in data:
-            district = data["district"]
-            district_obj = District.objects.filter(name__icontains=district, state=state_obj).first()
-            if district_obj:
-                data["district"] = district_obj.id
-            else:
-                raise ValidationError({"district": ["District Does not Exist"]})
-        else:
-            raise ValidationError({"district": ["District Not Present in Data"]})
+        if "district_id" not  in data:
+            raise ValidationError({"district": ["District Does not Exist"]})
 
         return data
+    
+    def create(self, validated_data):
+        return PatientExternalTest(**validated_data)
+    
+    class Meta:
+        list_serializer_class = ListPatientExternalTestICMRDataSerializer

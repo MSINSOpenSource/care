@@ -56,7 +56,7 @@ class Division(models.Model):
 
 
 class District(models.Model):
-    state = models.ForeignKey(State, on_delete=models.PROTECT)
+    state = models.ForeignKey(State, related_name="districts", on_delete=models.PROTECT)
     division = models.ForeignKey(Division, related_name="districts", on_delete=models.PROTECT, null=True)
     name = models.CharField(max_length=255)
 

@@ -12,7 +12,7 @@ class PatientExternalTest(FacilityBaseModel):
     gender = models.CharField(max_length=10)
     address = models.TextField()
     mobile_number = models.CharField(max_length=15)
-    is_repeat = models.BooleanField()
+    is_repeat = models.BooleanField(default=False)
     patient_status = models.CharField(max_length=15, null=True, blank=True)
     ward = models.ForeignKey(Ward, on_delete=models.PROTECT, null=True, blank=True)
     local_body = models.ForeignKey(
@@ -38,17 +38,17 @@ class PatientExternalTest(FacilityBaseModel):
     aadhar_number = models.CharField(max_length=255, blank=True, null=True)
     passport_number = models.CharField(max_length=255, blank=True, null=True)
     state = models.ForeignKey(
-        State, on_delete=models.PROTECT, null=False, blank=False
+        State, on_delete=models.PROTECT, null=True, blank=True
     )
     village_town = models.CharField(max_length=255, blank=True, null=True)
     pincode = models.CharField(max_length=255, blank=True, null=True)
-    sample_received_date = models.DateField(blank=True, null=True)
-    entry_date = models.DateField(blank=True, null=True)
+    sample_received_date = models.DateTimeField(blank=True, null=True)
+    entry_date = models.DateTimeField(blank=True, null=True)
     sample_id = models.CharField(max_length=255, blank=True, null=True)
     underlying_medical_condition = models.CharField(max_length=255, blank=True, null=True)
-    is_hospitalized = models.BooleanField(blank=True)
+    is_hospitalized = models.BooleanField(blank=True, null=True)
     hospital_name = models.CharField(max_length=255, blank=True, null=True)
-    hospitalization_date = models.DateField(blank=True, null=True)
+    hospitalization_date = models.DateTimeField(blank=True, null=True)
     hospital_state = models.CharField(max_length=255, blank=True, null=True)
     hospital_district = models.CharField(max_length=255, blank=True, null=True)
     testing_kit_used = models.CharField(max_length=255, blank=True, null=True)
@@ -57,8 +57,7 @@ class PatientExternalTest(FacilityBaseModel):
     egene = models.CharField(max_length=255, blank=True, null=True)
     rdrp = models.CharField(max_length=255, blank=True, null=True)
     orf1b = models.CharField(max_length=255, blank=True, null=True)
-    is_repeat_sample = models.CharField(max_length=255, blank=True, null=True)
-    confirmation_date = models.DateField(blank=True, null=True)
+    confirmation_date = models.DateTimeField(blank=True, null=True)
     date_of_sample_tested = models.DateTimeField(blank=True, null=True)
     remarks = models.CharField(max_length=255, blank=True, null=True)
 
