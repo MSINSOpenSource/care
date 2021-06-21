@@ -149,8 +149,8 @@ class PatientExternalTestViewSet(
 
     @action(methods=["POST"], detail=False, permission_classes=[])
     def bulk_upsert_icmr(self, request, *args, **kwargs):
-        # if not self.check_upload_permission():
-        #     raise PermissionDenied("Permission to Endpoint Denied")
+        if not self.check_upload_permission():
+            raise PermissionDenied("Permission to Endpoint Denied")
 
         try:
             excel_data = {}
@@ -183,13 +183,16 @@ class PatientExternalTestViewSet(
 
                             if key == "state":
                                 state = states_dict.get(item.lower())
-                                item = state.id
+                                if state:
+                                    item = state.id
+                                    district_dict = {district.name.lower(
+                                    ): district for district in state.districts.all()}
                                 key = "state_id"
-                                district_dict = {district.name.lower(): district for district in state.districts.all()}
 
                             elif key == "district":
                                 district = district_dict.get(item.lower())
-                                item = district.id
+                                if district:
+                                    item = district.id
                                 key = "district_id"
 
                             elif key in ["is_hospitalized", "is_repeat"]:
