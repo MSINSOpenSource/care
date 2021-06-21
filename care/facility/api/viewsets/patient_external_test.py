@@ -137,10 +137,10 @@ class PatientExternalTestViewSet(
             ser_object.save()
         return Response(status=status.HTTP_202_ACCEPTED)
 
-    @action(methods=["POST"], detail=False, permission_classes=[])
+    @action(methods=["POST"], detail=False)
     def bulk_upsert_icmr(self, request, *args, **kwargs):
-        # if not self.check_upload_permission():
-        #     raise PermissionDenied("Permission to Endpoint Denied")
+        if not self.check_upload_permission():
+            raise PermissionDenied("Permission to Endpoint Denied")
 
         try:
             excel_data = {}
