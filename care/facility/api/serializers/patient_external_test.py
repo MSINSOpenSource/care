@@ -89,7 +89,6 @@ class PatientExternalTestSerializer(serializers.ModelSerializer):
         model = PatientExternalTest
         fields = "__all__"
 
-
 class ListPatientExternalTestICMRDataSerializer(serializers.ListSerializer):
     def create(self, validated_data):
         result = [self.child.create(attrs) for attrs in validated_data]
@@ -102,54 +101,53 @@ class ListPatientExternalTestICMRDataSerializer(serializers.ListSerializer):
         return result
 
 class PatientExternalTestICMRDataSerializer(serializers.Serializer):
-    # local_body_object = LocalBodySerializer(source="local_body", read_only=True)
-    # district_object = DistrictSerializer(source="district", read_only=True)
+    id = serializers.IntegerField(read_only=True)
+    srf_id = serializers.CharField(required=False, allow_blank=True)
+    name = serializers.CharField()
+    age = serializers.IntegerField()
+    age_in = serializers.CharField()
+    gender = serializers.CharField(required=False, allow_blank=True)
+    mobile_number = serializers.CharField(required=False, allow_blank=True)
+    patient_category = serializers.CharField(required=False, allow_blank=True)
+    lab_name = serializers.CharField(required=False, allow_blank=True)
+    sample_type = serializers.CharField(required=False, allow_blank=True)
+    result = serializers.CharField()
+    icmr_id = serializers.CharField(required=False, allow_blank=True)
+    icmr_patient_id = serializers.CharField(required=False, allow_blank=True)
+    contact_number_of = serializers.CharField(required=False, allow_blank=True)
+    nationality = serializers.CharField(required=False, allow_blank=True)
+    aadhar_number = serializers.CharField(required=False, allow_blank=True)
+    passport_number = serializers.CharField(required=False, allow_blank=True)
+    pincode = serializers.CharField(required=False, allow_blank=True)
+    address = serializers.CharField(required=False, allow_blank=True)
+    village_town = serializers.CharField(required=False, allow_blank=True)
+    underlying_medical_condition = serializers.CharField(required=False, allow_blank=True)
 
-    srf_id = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    name = serializers.CharField(write_only=True)
-    age = serializers.IntegerField(write_only=True)
-    age_in = serializers.CharField(write_only=True)
-    gender = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    mobile_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    patient_category = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    lab_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    sample_type = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    result = serializers.CharField(write_only=True)
-    icmr_id = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    icmr_patient_id = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    contact_number_of = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    nationality = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    aadhar_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    passport_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    pincode = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    address = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    village_town = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    underlying_medical_condition = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    sample_id = serializers.CharField(required=False, allow_blank=True)
+    hospital_name = serializers.CharField(required=False, allow_blank=True)
+    hospital_state = serializers.CharField(required=False, allow_blank=True)
+    hospital_district = serializers.CharField(required=False, allow_blank=True)
+    symptom_status = serializers.CharField(required=False, allow_blank=True)
+    test_type = serializers.CharField(required=False, allow_blank=True)
+    egene = serializers.CharField(required=False, allow_blank=True)
+    rdrp = serializers.CharField(required=False, allow_blank=True)
+    orf1b = serializers.CharField(required=False, allow_blank=True)
+    remarks = serializers.CharField(required=False, allow_blank=True)
+    state_id = serializers.IntegerField()
+    district_id = serializers.IntegerField()
 
-    sample_id = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    hospital_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    hospital_state = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    hospital_district = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    symptom_status = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    test_type = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    egene = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    rdrp = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    orf1b = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    remarks = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    state_id = serializers.IntegerField(write_only=True)
-    district_id = serializers.IntegerField(write_only=True)
+    is_hospitalized = serializers.BooleanField()
+    is_repeat = serializers.BooleanField()
 
-    is_hospitalized = serializers.BooleanField(write_only=True)
-    is_repeat = serializers.BooleanField(write_only=True)
-
-    sample_collection_date = serializers.DateField(write_only=True, input_formats=["%Y-%m-%d %H:%M:%S"], required=False)
+    sample_collection_date = serializers.DateField(input_formats=["%Y-%m-%d %H:%M:%S"], required=False)
     sample_received_date = serializers.DateTimeField(
-        write_only=True, required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
-    entry_date = serializers.DateTimeField(write_only=True, required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
-    hospitalization_date = serializers.CharField(write_only=True, required=False, allow_blank=True)
+        required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
+    entry_date = serializers.DateTimeField(required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
+    hospitalization_date = serializers.CharField(required=False, allow_blank=True)
     date_of_sample_tested = serializers.DateTimeField(
-        write_only=True, required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
-    confirmation_date = serializers.CharField(write_only=True, required=False, allow_blank=True)
+        required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
+    confirmation_date = serializers.CharField(required=False, write_only=True, allow_blank=True)
+    confirmation_date = serializers.DateTimeField(read_only=True)
 
     def validate_hospitalization_date(self, date):
         if "N/A" in date:

@@ -139,8 +139,8 @@ class PatientExternalTestViewSet(
 
     @action(methods=["POST"], detail=False, permission_classes=[])
     def bulk_upsert_icmr(self, request, *args, **kwargs):
-        if not self.check_upload_permission():
-            raise PermissionDenied("Permission to Endpoint Denied")
+        # if not self.check_upload_permission():
+        #     raise PermissionDenied("Permission to Endpoint Denied")
 
         try:
             excel_data = {}
@@ -203,6 +203,6 @@ class PatientExternalTestViewSet(
             serializer.is_valid(raise_exception=True)
             external_tests = serializer.save()
 
-            return Response(data=PatientExternalTestSerializer(external_tests, many=True).data, status=status.HTTP_200_OK)
+            return Response(data=PatientExternalTestICMRDataSerializer(external_tests, many=True).data, status=status.HTTP_200_OK)
         except MultiValueDictKeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
