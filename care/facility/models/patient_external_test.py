@@ -1,3 +1,4 @@
+from fernet_fields import EncryptedTextField
 from django.db import models
 
 from care.facility.models import FacilityBaseModel, PatientRegistration, pretty_boolean
@@ -35,8 +36,8 @@ class PatientExternalTest(FacilityBaseModel):
     icmr_patient_id = models.CharField(max_length=255, blank=True, null=True)
     contact_number_of = models.CharField(max_length=255, blank=True, null=True)
     nationality = models.CharField(max_length=255, blank=True, null=True)
-    aadhar_number = models.CharField(max_length=255, blank=True, null=True)
-    passport_number = models.CharField(max_length=255, blank=True, null=True)
+    aadhar_number = EncryptedTextField(null=True)
+    passport_number = EncryptedTextField(null=True)
     state = models.ForeignKey(
         State, on_delete=models.PROTECT, null=True, blank=True
     )
