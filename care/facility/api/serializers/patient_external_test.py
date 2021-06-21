@@ -144,6 +144,7 @@ class PatientExternalTestICMRDataSerializer(serializers.Serializer):
         required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
     entry_date = serializers.DateTimeField(required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
     hospitalization_date = serializers.CharField(required=False, allow_blank=True)
+    hospitalization_date = serializers.DateTimeField(read_only=True)
     date_of_sample_tested = serializers.DateTimeField(
         required=False, input_formats=["%Y-%m-%d %H:%M:%S"])
     confirmation_date = serializers.CharField(required=False, write_only=True, allow_blank=True)
