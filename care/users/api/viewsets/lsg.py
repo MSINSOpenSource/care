@@ -35,7 +35,7 @@ class StateViewSet(
     @action(detail=True, methods=["get"])
     def districts(self, *args, **kwargs):
         state = self.get_object()
-        serializer = DistrictSerializer(state.district_set.all().order_by("name"), many=True)
+        serializer = DistrictSerializer(state.districts.all().order_by("name"), many=True)
         return Response(data=serializer.data)
 
     @method_decorator(cache_page(cache_limit))
