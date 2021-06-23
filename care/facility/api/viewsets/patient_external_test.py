@@ -144,7 +144,7 @@ class PatientExternalTestViewSet(
 
         try:
             excel_data = {}
-            excel_file = request.FILES["files"]
+            excel_file = request.FILES["file"]
             if (str(excel_file).split('.')[-1] == "xls"):
                 excel_data = xls_get(excel_file, column_limit=41)
 
