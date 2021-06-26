@@ -203,6 +203,9 @@ class PatientExternalTestViewSet(
             serializer.is_valid(raise_exception=True)
             external_tests = serializer.save()
 
-            return Response(data=PatientExternalTestICMRDataSerializer(external_tests, many=True).data, status=status.HTTP_200_OK)
+            response_message = "{total_tests} tests were saved."
+            response = {"message": response_message.format(total_tests=len(external_tests))}
+
+            return Response(data=response, status=status.HTTP_200_OK)
         except MultiValueDictKeyError:
             return Response(status=status.HTTP_400_BAD_REQUEST)
