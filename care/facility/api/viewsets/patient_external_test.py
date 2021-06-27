@@ -1,6 +1,10 @@
 from collections import defaultdict
+from os import stat
+import io
+
 from pyexcel_xls import get_data as xls_get
-from pyexcel_xlsx import get_data as xlsx_get
+import pandas
+import magic
 
 from django.conf import settings
 from django.utils.datastructures import MultiValueDictKeyError
@@ -142,70 +146,109 @@ class PatientExternalTestViewSet(
         if not self.check_upload_permission():
             raise PermissionDenied("Permission to Endpoint Denied")
 
-        try:
-            excel_data = {}
-            excel_file = request.FILES["file"]
-            if (str(excel_file).split('.')[-1] == "xls"):
-                excel_data = xls_get(excel_file, column_limit=41)
+        parsed_data = []
 
-            elif (str(excel_file).split(".")[-1] == "xlsx"):
-                excel_data = xlsx_get(excel_file, column_limit=41)
+        states = State.objects.all().prefetch_related("districts")
+        states_dict = {state.name.lower(): state for state in states}
 
-            parsed_data = []
+        excel_data = {}
+        uploaded_file = request.FILES["file"]
 
-            states = State.objects.all().prefetch_related("districts")
-            states_dict = {state.name.lower(): state for state in states}
+        file_read = uploaded_file.read()
 
-            try:
-                file_name = list(excel_data.keys())[0]
-                keys = []
-                for i, row in enumerate(excel_data.get(file_name)):
-                    if i == 0:
-                        keys = [item.strip() for item in row]
-                    else:
-                        dictionary = {}
-                        district_dict = {}
-                        for j, item in enumerate(row):
-                            if isinstance(item, str):
-                                item = item.strip()
+        mime = magic.Magic(mime=True)
+        mime_type = mime.from_buffer(file_read)
 
-                            key = PatientExternalTest.ICMR_EXCEL_HEADER_KEY_MAPPING.get(keys[j])
+        extension = str(uploaded_file).split('.')[-1]
 
-                            if key == "state":
-                                state = states_dict.get(item.lower())
-                                if state:
-                                    item = state.id
-                                    district_dict = {district.name.lower(
-                                    ): district for district in state.districts.all()}
-                                key = "state_id"
+        if mime_type == "application/vnd.ms-excel":
+            excel_data = xls_get(uploaded_file, column_limit=41)
+            parsed_data = self.parse_excel(excel_data=excel_data, states_dict=states_dict)
 
-                            elif key == "district":
-                                district = district_dict.get(item.lower())
-                                if district:
-                                    item = district.id
-                                key = "district_id"
+        elif mime_type == "text/plain" and extension == "xls":
+            # assuming the file is uploaded as is when exported from icmr portal
+            # icmr portal file has an extension of .xls but actually is a tabbed csv file in plaintext format
+            uploaded_file = request.FILES["file"]
+            file_stream = io.StringIO(file_read.decode('utf-8'))
+            csv_data = pandas.read_csv(file_stream, delimiter='\t').to_dict('records')
+            parsed_data = self.parse_tabbed_csv(csv_data=csv_data, states_dict=states_dict)
 
-                            elif key in ["is_hospitalized", "is_repeat"]:
-                                if item and "yes" in item:
-                                    item = True
-                                else:
-                                    item = False
+        serializer = PatientExternalTestICMRDataSerializer(data=parsed_data, many=True)
+        serializer.is_valid(raise_exception=True)
+        external_tests = serializer.save()
 
-                            if key:
-                                dictionary[key] = item
-                        if dictionary:
-                            parsed_data.append(dictionary)
+        response_message = "{total_tests} tests were saved."
+        response = {"message": response_message.format(total_tests=len(external_tests))}
 
-            except Exception as e:
-                raise e
+        return Response(data=response, status=status.HTTP_200_OK)
 
-            serializer = PatientExternalTestICMRDataSerializer(data=parsed_data, many=True)
-            serializer.is_valid(raise_exception=True)
-            external_tests = serializer.save()
+    def parse_tabbed_csv(self, csv_data, states_dict):
+        self.district_dict = {}
+        parsed_data = []
 
-            response_message = "{total_tests} tests were saved."
-            response = {"message": response_message.format(total_tests=len(external_tests))}
+        for row in csv_data:
+            dictionary = {}
 
-            return Response(data=response, status=status.HTTP_200_OK)
-        except MultiValueDictKeyError:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            for key, item in row.items():
+                key, value = self.parse_dictionary(key=key.strip(), item=item,
+                                                   states_dict=states_dict, district_dict=self.district_dict)
+                dictionary[key] = value
+
+            if dictionary:
+                parsed_data.append(dictionary)
+
+        return parsed_data
+
+    def parse_excel(self, excel_data, states_dict):
+        self.district_dict = {}
+        parsed_data = []
+        file_name = list(excel_data.keys())[0]
+        keys = []
+
+        for i, row in enumerate(excel_data.get(file_name)):
+
+            if i == 0:
+                keys = [item.strip() for item in row]
+            else:
+                dictionary = {}
+
+                for j, item in enumerate(row):
+                    key, value = self.parse_dictionary(
+                        key=keys[j], item=item, states_dict=states_dict, district_dict=self.district_dict)
+                    dictionary[key] = value
+
+                if dictionary:
+                    parsed_data.append(dictionary)
+
+        return parsed_data
+
+    def parse_dictionary(self, key, item, states_dict, district_dict):
+
+        if isinstance(item, str):
+            item = item.strip()
+        key = PatientExternalTest.ICMR_EXCEL_HEADER_KEY_MAPPING.get(key)
+
+        if key == "state":
+            state = states_dict.get(item.lower())
+
+            if state:
+                item = state.id
+                self.district_dict = {district.name.lower(
+                ): district for district in state.districts.all()}
+            key = "state_id"
+
+        elif key == "district":
+            district = district_dict.get(item.lower())
+
+            if district:
+                item = district.id
+            key = "district_id"
+
+        elif key in ["is_hospitalized", "is_repeat"]:
+
+            if item and "yes" in item:
+                item = True
+            else:
+                item = False
+
+        return key, item
