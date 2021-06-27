@@ -71,6 +71,11 @@ pywebpush==1.11.0
 ## Override Requirements
 PyJWT==v1.7.1
 
+# Read MIME Type
+python-magic==0.4.24
+
 # Parse Excel
-pyexcel-xlsx==0.6.0
 pyexcel-xls==0.6.2
+
+# Parse CSV
+pandas==1.2.5
