@@ -12,6 +12,7 @@ RUN : \
     build-essential \
     libgdal-dev \
     libsqlite3-mod-spatialite \
+    libmagic-dev \
   && rm -rf /var/lib/apt/lists/* \
   &&:
 
