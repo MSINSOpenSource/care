@@ -1,5 +1,4 @@
 from collections import defaultdict
-from os import stat
 import io
 
 from pyexcel_xls import get_data as xls_get
