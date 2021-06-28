@@ -1,5 +1,11 @@
 FROM vichuhari100/care-production-base:latest
 
+RUN apt-get install -y \
+  --no-install-recommends \
+  libmagic-dev \
+  && rm -rf /var/lib/apt/lists/* \
+  &&:
+
 RUN addgroup --system django \
   && adduser --system --ingroup django django
 
