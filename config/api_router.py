@@ -24,6 +24,7 @@ from care.facility.api.viewsets.patient import (
 )
 from care.facility.api.viewsets.patient_consultation import DailyRoundsViewSet, PatientConsultationViewSet
 from care.facility.api.viewsets.patient_external_test import PatientExternalTestViewSet
+from care.facility.api.viewsets.patient_external_test_upload_history import PatientExternalTestUploadHistoryViewSet
 from care.facility.api.viewsets.patient_investigation import (
     InvestigationGroupViewset,
     InvestigationValueViewSet,
@@ -82,6 +83,7 @@ router.register("patient", PatientViewSet)
 router.register("consultation", PatientConsultationViewSet)
 
 router.register("external_result", PatientExternalTestViewSet)
+router.register("external_result_history", PatientExternalTestUploadHistoryViewSet)
 
 router.register("pharmacy/consultation", PrescriptionSupplierConsultationViewSet)
 router.register("pharmacy/prescription", PrescriptionSupplierViewSet)
