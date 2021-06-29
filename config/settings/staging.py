@@ -156,6 +156,7 @@ sentry_sdk.init(
 )
 # Your stuff...
 # ------------------------------------------------------------------------------
+DATA_UPLOAD_MAX_NUMBER_FIELDS = None
 
 IS_PRODUCTION = False
 
