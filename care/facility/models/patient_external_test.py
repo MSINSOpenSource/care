@@ -32,7 +32,7 @@ class PatientExternalTest(FacilityBaseModel):
     result_date = models.DateField(blank=True, null=True)
 
     # icmr attributes
-    icmr_id = models.CharField(max_length=255, blank=True, null=True)
+    icmr_id = models.CharField(max_length=255, blank=True, null=True, unique=True)
     icmr_patient_id = models.CharField(max_length=255, blank=True, null=True)
     contact_number_of = models.CharField(max_length=255, blank=True, null=True)
     nationality = models.CharField(max_length=255, blank=True, null=True)
@@ -158,3 +158,15 @@ class PatientExternalTest(FacilityBaseModel):
         "Date of Sample Tested": "date_of_sample_tested",
         "Confirmation Date": "confirmation_date",
     }
+
+
+class PatientExternalTestUploadHistory(FacilityBaseModel):
+    file_name = models.CharField(max_length=255, blank=True, null=True)
+    most_recent_date_of_sample_tested_in_file = models.DateTimeField(blank=True, null=True)
+    uploaded_by = models.ForeignKey(
+        User, on_delete=models.PROTECT, null=True, blank=True
+    )
+    hash = models.CharField(max_length=1023, blank=True, null=True)
+
+    class Meta:
+        verbose_name_plural = "patient external test upload histories"

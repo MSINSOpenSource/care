@@ -333,6 +333,8 @@ LOCATION_FIELD = {
 def GETKEY(group, request):
     return "ratelimit"
 
+# Maximum size of uploaded file that can be held in memory
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10000000 # 10 MB
 
 DJANGO_RATE_LIMIT = env("RATE_LIMIT", default="5/10m")
 

@@ -1,10 +1,11 @@
 from collections import defaultdict
 import io
-
+import hashlib
+from datetime import date, datetime
 from pyexcel_xls import get_data as xls_get
 import pandas
 import magic
-
+from django.utils.timezone import make_aware
 from django.conf import settings
 from django.utils.datastructures import MultiValueDictKeyError
 from django_filters import rest_framework as filters
@@ -24,8 +25,8 @@ from rest_framework.viewsets import GenericViewSet
 from care.facility.api.serializers.patient_external_test import (
     PatientExternalTestSerializer, PatientExternalTestICMRDataSerializer
 )
-from care.facility.models import PatientExternalTest
-from care.users.models import User, State
+from care.facility.models import PatientExternalTest, PatientExternalTestUploadHistory
+from care.users.models import User, State, District
 
 
 def prettyerrors(errors):
@@ -144,62 +145,79 @@ class PatientExternalTestViewSet(
     def bulk_upsert_icmr(self, request, *args, **kwargs):
         if not self.check_upload_permission():
             raise PermissionDenied("Permission to Endpoint Denied")
-
         parsed_data = []
 
         states = State.objects.all().prefetch_related("districts")
+        districts = District.objects.all()
         states_dict = {state.name.lower(): state for state in states}
+        districts_dict = {district.name.lower(): district for district in districts}
 
         excel_data = {}
         uploaded_file = request.FILES["file"]
 
+        file_hash = hashlib.blake2b()
+
+        while True:
+            chunk = uploaded_file.read(16384)
+            if not chunk:
+                break
+            file_hash.update(chunk)
+        existing_file_hash = PatientExternalTestUploadHistory.objects.filter(hash=file_hash.hexdigest())
+
+        if existing_file_hash.exists():
+            return Response(data="This file has already been uploaded.", status=status.HTTP_400_BAD_REQUEST)
+
+        uploaded_file.seek(0)
         file_read = uploaded_file.read()
 
         mime = magic.Magic(mime=True)
         mime_type = mime.from_buffer(file_read)
-
         extension = str(uploaded_file).split('.')[-1]
 
         if mime_type == "application/vnd.ms-excel":
             excel_data = xls_get(uploaded_file, column_limit=41)
-            parsed_data = self.parse_excel(excel_data=excel_data, states_dict=states_dict)
+            parsed_data = self.parse_excel(excel_data=excel_data, states_dict=states_dict,
+                                           districts_dict=districts_dict)
 
         elif mime_type == "text/plain" and extension == "xls":
             # assuming the file is uploaded as is when exported from icmr portal
             # icmr portal file has an extension of .xls but actually is a tabbed csv file in plaintext format
-            uploaded_file = request.FILES["file"]
             file_stream = io.StringIO(file_read.decode('utf-8'))
             csv_data = pandas.read_csv(file_stream, delimiter='\t').to_dict('records')
-            parsed_data = self.parse_tabbed_csv(csv_data=csv_data, states_dict=states_dict)
+            parsed_data = self.parse_tabbed_csv(
+                csv_data=csv_data, states_dict=states_dict, districts_dict=districts_dict)
 
-        serializer = PatientExternalTestICMRDataSerializer(data=parsed_data, many=True)
-        serializer.is_valid(raise_exception=True)
-        external_tests = serializer.save()
+        PatientExternalTest.objects.bulk_create(parsed_data, ignore_conflicts=True)
+        # serializer = PatientExternalTestICMRDataSerializer(data=parsed_data, many=True)
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save()
 
-        response_message = "{total_tests} tests were saved."
-        response = {"message": response_message.format(total_tests=len(external_tests))}
+        PatientExternalTestUploadHistory.objects.create(file_name=str(
+            uploaded_file), uploaded_by=request.user, hash=file_hash.hexdigest(),
+            most_recent_date_of_sample_tested_in_file=self.most_recent_date_of_sample_tested_in_file)
 
+        response_message = "Tests were successfully uploaded and saved"
+        response = {"message": response_message}
         return Response(data=response, status=status.HTTP_200_OK)
 
-    def parse_tabbed_csv(self, csv_data, states_dict):
-        self.district_dict = {}
+    def parse_tabbed_csv(self, csv_data, states_dict, districts_dict):
         parsed_data = []
-
+        self.most_recent_date_of_sample_tested_in_file = None
         for row in csv_data:
             dictionary = {}
 
             for key, item in row.items():
                 key, value = self.parse_dictionary(key=key.strip(), item=item,
-                                                   states_dict=states_dict, district_dict=self.district_dict)
+                                                   states_dict=states_dict, districts_dict=districts_dict)
                 dictionary[key] = value
 
             if dictionary:
-                parsed_data.append(dictionary)
+                parsed_data.append(PatientExternalTest(**dictionary))
 
         return parsed_data
 
-    def parse_excel(self, excel_data, states_dict):
-        self.district_dict = {}
+    def parse_excel(self, excel_data, states_dict, districts_dict):
+        self.most_recent_date_of_sample_tested_in_file = None
         parsed_data = []
         file_name = list(excel_data.keys())[0]
         keys = []
@@ -213,15 +231,15 @@ class PatientExternalTestViewSet(
 
                 for j, item in enumerate(row):
                     key, value = self.parse_dictionary(
-                        key=keys[j], item=item, states_dict=states_dict, district_dict=self.district_dict)
+                        key=keys[j], item=item, states_dict=states_dict, districts_dict=districts_dict)
                     dictionary[key] = value
 
                 if dictionary:
-                    parsed_data.append(dictionary)
+                    parsed_data.append(PatientExternalTest(**dictionary))
 
         return parsed_data
 
-    def parse_dictionary(self, key, item, states_dict, district_dict):
+    def parse_dictionary(self, key, item, states_dict, districts_dict):
 
         if isinstance(item, str):
             item = item.strip()
@@ -232,12 +250,10 @@ class PatientExternalTestViewSet(
 
             if state:
                 item = state.id
-                self.district_dict = {district.name.lower(
-                ): district for district in state.districts.all()}
             key = "state_id"
 
         elif key == "district":
-            district = district_dict.get(item.lower())
+            district = districts_dict.get(item.lower())
 
             if district:
                 item = district.id
@@ -249,5 +265,19 @@ class PatientExternalTestViewSet(
                 item = True
             else:
                 item = False
+
+        elif key in ["hospitalization_date", "confirmation_date", "sample_received_date", "entry_date"]:
+            if "N/A" in item:
+                item = None
+            elif item:
+                item = make_aware(datetime.strptime(item, "%Y-%m-%d %H:%M:%S"))
+
+        elif key in ["sample_collection_date"]:
+            item = make_aware(datetime.strptime(item, "%Y-%m-%d %H:%M:%S")).date()
+
+        elif key == "date_of_sample_tested":
+            item = make_aware(datetime.strptime(item, "%Y-%m-%d %H:%M:%S"))
+            if self.most_recent_date_of_sample_tested_in_file is None or self.most_recent_date_of_sample_tested_in_file < item:
+                self.most_recent_date_of_sample_tested_in_file = item
 
         return key, item
