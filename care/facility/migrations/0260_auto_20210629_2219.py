@@ -5,6 +5,9 @@ from django.db import migrations, models
 import django.db.models.deletion
 import uuid
 
+def delete_patient_tests(apps, *args):
+    PatientExternalTest = apps.get_model("facility", "PatientExternalTest")
+    PatientExternalTest.objects.all().delete()
 
 class Migration(migrations.Migration):
 
@@ -14,6 +17,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(delete_patient_tests),
         migrations.AlterField(
             model_name='patientexternaltest',
             name='icmr_id',
