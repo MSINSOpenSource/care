@@ -5,6 +5,14 @@ from datetime import date, datetime
 from pyexcel_xls import get_data as xls_get
 import pandas
 import magic
+from contextlib import closing
+import csv
+from django.db import connection
+from io import StringIO
+import uuid
+
+from django.db import IntegrityError
+from django.utils.encoding import force_bytes
 from django.utils.timezone import make_aware
 from django.conf import settings
 from django.utils.datastructures import MultiValueDictKeyError
@@ -187,10 +195,7 @@ class PatientExternalTestViewSet(
             parsed_data = self.parse_tabbed_csv(
                 csv_data=csv_data, states_dict=states_dict, districts_dict=districts_dict)
 
-        PatientExternalTest.objects.bulk_create(parsed_data, ignore_conflicts=True)
-        # serializer = PatientExternalTestICMRDataSerializer(data=parsed_data, many=True)
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
+        self.copy_from(parsed_data)
 
         PatientExternalTestUploadHistory.objects.create(file_name=str(
             uploaded_file), uploaded_by=request.user, hash=file_hash.hexdigest(),
@@ -212,7 +217,7 @@ class PatientExternalTestViewSet(
                 dictionary[key] = value
 
             if dictionary:
-                parsed_data.append(PatientExternalTest(**dictionary))
+                parsed_data.append(dictionary)
 
         return parsed_data
 
@@ -235,7 +240,7 @@ class PatientExternalTestViewSet(
                     dictionary[key] = value
 
                 if dictionary:
-                    parsed_data.append(PatientExternalTest(**dictionary))
+                    parsed_data.append(dictionary)
 
         return parsed_data
 
@@ -281,3 +286,25 @@ class PatientExternalTestViewSet(
                 self.most_recent_date_of_sample_tested_in_file = item
 
         return key, item
+
+    def copy_from(self, n_records):
+
+        stream = StringIO()
+        writer = csv.writer(stream, delimiter='\t')
+        icmr_id_set = set()
+        for i in n_records:
+            if i["icmr_id"] not in icmr_id_set:
+                writer.writerow([str(uuid.uuid4()), 'false', i["name"], i["age"], i["age_in"], i["gender"], i["address"],
+                                i["mobile_number"], i["is_repeat"], i["lab_name"], i["test_type"], i["sample_type"], i["result"], i["srf_id"], i["patient_category"],  i["icmr_id"], i["icmr_patient_id"], i["contact_number_of"], i["nationality"], i['pincode'], i['village_town'], i['underlying_medical_condition'], i['sample_id'], i['hospital_name'], i['hospital_state'], i['hospital_district'], i['symptom_status'], i['symptoms'], i['egene'], i['rdrp'], i['orf1b'], i['remarks'], i['state_id'], i['district_id'], i['is_hospitalized']])
+                icmr_id_set.add(i["icmr_id"])
+
+        stream.seek(0)
+
+        with closing(connection.cursor()) as cursor:
+            cursor.copy_from(
+                file=stream,
+                table='facility_patientexternaltest',
+                sep='\t',
+                columns=('external_id', 'deleted', 'name', 'age', 'age_in', 'gender', 'address', 'mobile_number', 'is_repeat', 'lab_name', 'test_type',
+                         'sample_type', 'result', 'srf_id', 'patient_category', 'icmr_id', 'icmr_patient_id', 'contact_number_of', 'nationality', 'pincode', 'village_town', 'underlying_medical_condition', 'sample_id', 'hospital_name', 'hospital_state', 'hospital_district', 'symptom_status', 'symptoms', 'egene', 'rdrp', 'orf1b', 'remarks', 'state_id', 'district_id', 'is_hospitalized'),
+            )
