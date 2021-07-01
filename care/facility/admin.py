@@ -26,6 +26,7 @@ from .models import (
     Room,
     StaffRoomAllocation,
     PatientExternalTest,
+    PatientExternalTestUploadHistory,
     PatientInvestigationGroup,
     PatientInvestigation,
 )
@@ -157,6 +158,10 @@ class PatientExternalTestAdmin(admin.ModelAdmin):
     pass
 
 
+class PatientExternalTestUploadHistoryAdmin(admin.ModelAdmin):
+    pass
+
+
 class PatientTestAdmin(admin.ModelAdmin):
     pass
 
@@ -203,5 +208,6 @@ admin.site.register(FacilityInventoryUnitConverter)
 admin.site.register(FacilityInventoryItem)
 admin.site.register(FacilityInventoryItemTag)
 admin.site.register(PatientExternalTest, PatientExternalTestAdmin)
+admin.site.register(PatientExternalTestUploadHistory, PatientExternalTestUploadHistoryAdmin)
 admin.site.register(PatientInvestigation, PatientTestAdmin)
 admin.site.register(PatientInvestigationGroup, PatientTestGroupAdmin)
